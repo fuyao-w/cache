@@ -10,10 +10,10 @@ import (
 type GetValFunc func(key string) (interface{}, error)
 
 type Cache struct {
-	cache       *lru.Cache
-	getValFunc  GetValFunc
-	singleFight singleflight.Group
-	expireTime  time.Duration
+	cache                     *lru.Cache
+	getValFunc                GetValFunc
+	singleFight               singleflight.Group
+	expireTime, lockPrecision time.Duration
 }
 
 type cacheVal struct {
@@ -21,13 +21,27 @@ type cacheVal struct {
 	Val      interface{}
 }
 
+/*
+防止缓存穿透的锁的粒度级别
+默认 time.Minute
+
+-time.Second
+-time.Hour
+...
+*/
+func (c *Cache) WithLockPrecision(precision time.Duration) *Cache {
+	c.lockPrecision = precision
+	return c
+}
+
 func NewCache(size int, expire time.Duration, getValFunc GetValFunc) *Cache {
 	if size <= 0 || expire <= 0 || getValFunc == nil {
 		panic("getValFunc is nil")
 	}
 	return &Cache{
-		getValFunc: getValFunc,
-		expireTime: expire,
+		getValFunc:    getValFunc,
+		expireTime:    expire,
+		lockPrecision: time.Minute,
 		cache: func() (cache *lru.Cache) {
 			var err error
 			if cache, err = lru.New(size); err != nil {
@@ -51,9 +65,8 @@ func (c *Cache) Remove(key string) {
 func (c *Cache) Get(key string) (result interface{}, err error) {
 	val, ok := c.cache.Get(key)
 	if !ok || time.Now().Add(-c.expireTime).Unix() > val.(cacheVal).expireAt {
-		lockKey := cast.ToString(time.Now().Minute())
+		lockKey := cast.ToString(time.Now().Truncate(c.lockPrecision).Unix())
 		defer c.singleFight.Forget(lockKey)
-
 		if result, err, _ = c.singleFight.Do(lockKey, func() (interface{}, error) {
 			return c.getValFunc(key)
 		}); err != nil {

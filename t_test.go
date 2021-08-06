@@ -10,7 +10,7 @@ import (
 var cach = NewCache(100000000, 10*time.Second, func(key string) (interface{}, error) {
 
 	return time.Now().UnixNano(), nil
-})
+}).WithLockPrecision(time.Second)
 
 func TestCache(t *testing.T) {
 	var wg sync.WaitGroup
