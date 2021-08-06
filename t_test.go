@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"fmt"
 	"github.com/spf13/cast"
 	"sync"
 	"testing"
@@ -9,7 +8,7 @@ import (
 )
 
 var cach = NewCache(100000000, 10*time.Second, func(key string) (interface{}, error) {
-	fmt.Println("get val", key)
+
 	return time.Now().UnixNano(), nil
 })
 
