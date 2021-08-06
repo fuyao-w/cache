@@ -52,7 +52,6 @@ func (c *Cache) Get(key string) (result interface{}, err error) {
 	val, ok := c.cache.Get(key)
 	if !ok || time.Now().Add(-c.expireTime).Unix() > val.(cacheVal).expireAt {
 		lockKey := cast.ToString(time.Now().Minute())
-		defer c.singleFight.Forget(lockKey)
 		if result, err, _ = c.singleFight.Do(lockKey, func() (interface{}, error) {
 			return c.getValFunc(key)
 		}); err != nil {
