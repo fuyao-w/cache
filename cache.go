@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"git.inke.cn/BackendPlatform/go-tools/cast"
+	"github.com/spf13/cast"
 	lru "github.com/hashicorp/golang-lru"
 	"golang.org/x/sync/singleflight"
 	"time"
